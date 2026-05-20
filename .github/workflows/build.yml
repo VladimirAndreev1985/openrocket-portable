@@ -75,12 +75,14 @@ jobs:
             --java-options "-Dsun.java2d.d3d=false" `
             --java-options "-Dsun.java2d.opengl=false"
 
-          # Download Mesa3D and place opengl32.dll in runtime\bin so JVM loads it before system32
+          # Download Mesa3D - place DLLs next to OpenRocket.exe (loaded first by Windows DLL search order)
           $mesaUrl = "https://github.com/pal1000/mesa-dist-win/releases/download/24.3.4/mesa3d-24.3.4-release-msvc.7z"
           Invoke-WebRequest $mesaUrl -OutFile mesa.7z -UseBasicParsing
-          7z l mesa.7z | Select-String "opengl32|libgallium|dxil"
-          7z e mesa.7z opengl32.dll libgallium_wgl.dll dxil.dll -r -o"app-image/OpenRocket/runtime/bin" -y
-          Get-ChildItem "app-image/OpenRocket/runtime/bin" | Where-Object { $_.Name -match "opengl32|libgallium|dxil" }
+          7z e mesa.7z opengl32.dll libgallium_wgl.dll dxil.dll -r -o"app-image/OpenRocket" -y
+          # Also place in runtime/bin as fallback
+          Copy-Item "app-image/OpenRocket/opengl32.dll" "app-image/OpenRocket/runtime/bin/" -Force
+          Copy-Item "app-image/OpenRocket/libgallium_wgl.dll" "app-image/OpenRocket/runtime/bin/" -Force
+          Copy-Item "app-image/OpenRocket/dxil.dll" "app-image/OpenRocket/runtime/bin/" -Force
 
           $sha = "${{ steps.upstream.outputs.sha }}".Substring(0,7)
           $zipName = "OpenRocket-portable-win-x64-$sha.zip"
