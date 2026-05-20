@@ -1,0 +1,105 @@
+name: Build Portable OpenRocket
+
+on:
+  schedule:
+    # Check for new commits daily at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch or tag to build (default: unstable)'
+        default: 'unstable'
+        required: false
+
+jobs:
+  check-and-build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Get latest upstream commit
+        id: upstream
+        shell: bash
+        run: |
+          REF="${{ github.event.inputs.ref || 'unstable' }}"
+          SHA=$(git ls-remote https://github.com/openrocket/openrocket.git "refs/heads/$REF" | cut -f1)
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "ref=$REF" >> $GITHUB_OUTPUT
+
+      - name: Check if already built
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .built-sha
+          key: built-${{ steps.upstream.outputs.sha }}
+          lookup-only: true
+
+      - name: Skip if already built
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: |
+          echo "No new commits since last build. Skipping."
+          exit 0
+        shell: bash
+
+      - name: Checkout OpenRocket
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: openrocket/openrocket
+          ref: ${{ steps.upstream.outputs.ref }}
+          fetch-depth: 1
+
+      - name: Set up JDK 21
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Build shadow JAR
+        if: steps.cache.outputs.cache-hit != 'true'
+        shell: cmd
+        run: gradlew.bat shadowJar --no-daemon -q
+
+      - name: Build app-image with jpackage
+        if: steps.cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $jar = (Get-ChildItem build/libs/OpenRocket-*.jar | Select-Object -First 1).FullName
+          jpackage `
+            --type app-image `
+            --input (Split-Path $jar) `
+            --main-jar (Split-Path $jar -Leaf) `
+            --name OpenRocket `
+            --dest app-image `
+            --java-options "-Dsun.java2d.noddraw=true" `
+            --java-options "-Dsun.java2d.d3d=false"
+
+          $sha = "${{ steps.upstream.outputs.sha }}".Substring(0,7)
+          $zipName = "OpenRocket-portable-win-x64-$sha.zip"
+          Compress-Archive -Path "app-image/OpenRocket/*" -DestinationPath $zipName
+          echo "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
+
+      - name: Create GitHub Release
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ steps.upstream.outputs.sha }}
+          name: "Portable build (${{ steps.upstream.outputs.sha }})"
+          body: |
+            Auto-built from openrocket/openrocket@${{ steps.upstream.outputs.sha }} (`${{ steps.upstream.outputs.ref }}`)
+
+            **Использование:** распакуй zip, запусти `OpenRocket.exe`. Java не нужна.
+          files: ${{ env.ZIP_NAME }}
+          prerelease: true
+
+      - name: Mark SHA as built
+        if: steps.cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: echo "${{ steps.upstream.outputs.sha }}" > .built-sha
+
+      - name: Save build marker to cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .built-sha
+          key: built-${{ steps.upstream.outputs.sha }}
