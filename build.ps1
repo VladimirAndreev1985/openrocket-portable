@@ -49,7 +49,9 @@ jpackage `
     --name OpenRocket `
     --dest $appDir `
     --java-options "-Dsun.java2d.noddraw=true" `
-    --java-options "-Dsun.java2d.d3d=false"
+    --java-options "-Dsun.java2d.d3d=false" `
+    --java-options "-Djogl.disable.openglarbcontext=true" `
+    --java-options "-Dsun.java2d.opengl=false"
 if ($LASTEXITCODE -ne 0) { throw "jpackage failed" }
 
 # Zip

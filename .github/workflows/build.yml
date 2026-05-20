@@ -72,7 +72,9 @@ jobs:
             --name OpenRocket `
             --dest app-image `
             --java-options "-Dsun.java2d.noddraw=true" `
-            --java-options "-Dsun.java2d.d3d=false"
+            --java-options "-Dsun.java2d.d3d=false" `
+            --java-options "-Djogl.disable.openglarbcontext=true" `
+            --java-options "-Dsun.java2d.opengl=false"
 
           $sha = "${{ steps.upstream.outputs.sha }}".Substring(0,7)
           $zipName = "OpenRocket-portable-win-x64-$sha.zip"
