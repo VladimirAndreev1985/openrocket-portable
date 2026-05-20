@@ -48,12 +48,12 @@ jobs:
           ref: ${{ steps.upstream.outputs.ref }}
           fetch-depth: 1
 
-      - name: Set up JDK 21
+      - name: Set up JDK 17
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '17'
 
       - name: Build shadow JAR
         if: steps.cache.outputs.cache-hit != 'true'
