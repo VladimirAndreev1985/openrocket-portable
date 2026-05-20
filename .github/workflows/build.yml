@@ -75,10 +75,10 @@ jobs:
             --java-options "-Dsun.java2d.d3d=false" `
             --java-options "-Dsun.java2d.opengl=false"
 
-          # Download Mesa3D software OpenGL (replaces opengl32.dll for WGL fallback)
+          # Download Mesa3D and place opengl32.dll in runtime\bin so JVM loads it before system32
           $mesaUrl = "https://github.com/pal1000/mesa-dist-win/releases/download/24.3.4/mesa3d-24.3.4-release-msvc.7z"
           Invoke-WebRequest $mesaUrl -OutFile mesa.7z
-          7z e mesa.7z x64/opengl32.dll x64/libgallium_wgl.dll x64/dxil.dll -o"app-image/OpenRocket" -y
+          7z e mesa.7z x64/opengl32.dll x64/libgallium_wgl.dll x64/dxil.dll -o"app-image/OpenRocket/runtime/bin" -y
 
           $sha = "${{ steps.upstream.outputs.sha }}".Substring(0,7)
           $zipName = "OpenRocket-portable-win-x64-$sha.zip"
