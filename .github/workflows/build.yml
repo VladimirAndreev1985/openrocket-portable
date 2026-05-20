@@ -74,6 +74,7 @@ jobs:
             --java-options "-Dsun.java2d.noddraw=true" `
             --java-options "-Dsun.java2d.d3d=false" `
             --java-options "-Djogl.disable.openglarbcontext=true" `
+            --java-options "-Djogl.disable.opengldesktop=true" `
             --java-options "-Dsun.java2d.opengl=false"
 
           $sha = "${{ steps.upstream.outputs.sha }}".Substring(0,7)
