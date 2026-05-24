@@ -60,7 +60,12 @@ jobs:
         shell: pwsh
         run: |
           $f = "swing/src/main/java/info/openrocket/swing/gui/figure3d/RocketFigure3d.java"
-          (Get-Content $f) -replace 'getBoolean\(ApplicationPreferences\.OPENGL_USE_FBO, false\)', 'getBoolean(ApplicationPreferences.OPENGL_USE_FBO, true)' | Set-Content $f
+          $content = Get-Content $f -Raw
+          # Replace GLCanvas with GLJPanel directly - bypasses preference check
+          $patched = $content -replace 'canvas = new GLCanvas\(caps\)', 'canvas = new GLJPanel(caps)'
+          if ($patched -eq $content) { Write-Error "Patch did not match - GLCanvas line not found"; exit 1 }
+          [System.IO.File]::WriteAllText((Resolve-Path $f), $patched)
+          Write-Host "Patch applied: GLCanvas -> GLJPanel"
 
       - name: Build shadow JAR
         if: steps.cache.outputs.cache-hit != 'true'
